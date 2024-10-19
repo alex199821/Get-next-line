@@ -6,13 +6,13 @@
 /*   By: macbook <macbook@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/17 16:11:37 by auplisas          #+#    #+#             */
-/*   Updated: 2024/10/19 18:25:33 by macbook          ###   ########.fr       */
+/*   Updated: 2024/10/19 22:46:11 by macbook          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 // #include "get_next_line.h"
 
-#define BUFFER_SIZE 10
+// #define BUFFER_SIZE 10
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,26 +57,6 @@ void	*ft_calloc(size_t count, size_t size)
 	}
 	ft_memset(array, '\0', totalsize);
 	return (array);
-}
-
-void	*ft_memcpy(void *dst, const void *src, size_t n)
-{
-	char	*ptr1;
-	char	*ptr2;
-
-	if (!dst && !src)
-	{
-		return (NULL);
-	}
-	ptr1 = (char *)dst;
-	ptr2 = (char *)src;
-	while (n--)
-	{
-		*ptr1 = *ptr2;
-		ptr1++;
-		ptr2++;
-	}
-	return (dst);
 }
 
 void	*ft_memmove(void *dst, const void *src, size_t n)
@@ -148,26 +128,6 @@ char	*ft_substr(char const *s, unsigned int start, size_t len)
 	return (array);
 }
 
-char	*ft_strrchr(char *str, char c)
-{
-	int	i;
-
-	i = ft_strlen(str);
-	while (i > -1)
-	{
-		if (str[i] == c)
-		{
-			return ((char *)&str[i]);
-		}
-		i--;
-	}
-	if (c == '\0')
-	{
-		return ((char *)&str[i]);
-	}
-	return (NULL);
-}
-
 char	*ft_strjoin(char const *prefix, char const *suffix)
 {
 	char	*array;
@@ -195,135 +155,112 @@ char	*ft_strjoin(char const *prefix, char const *suffix)
 	return (array);
 }
 
-// char	*get_next_line(int fd)
-// {
-// 	char	*read_data;
-// 	ssize_t	bytes_read;
-
-// 	read_data = malloc(BUFFER_SIZE + 1);
-// 	if (!read_data)
-// 		return (NULL);
-// 	bytes_read = read(fd, read_data, BUFFER_SIZE);
-// 	if (bytes_read <= 0)
-// 	{
-// 		free(read_data);
-// 		return (NULL);
-// 	}
-// 	return (read_data);
-// }
-
 char	*read_all_lines(int fd)
 {
 	char	*read_data;
+	char	*temp;
+	char	*line;
 	ssize_t	bytes_read;
 
 	read_data = malloc(BUFFER_SIZE + 1);
-	if (!read_data)
+	line = malloc(1);
+	if (!read_data || !line)
 		return (NULL);
-	bytes_read = read(fd, read_data, BUFFER_SIZE);
-	if (bytes_read <= 0)
+	line[0] = '\0';
+	while ((bytes_read = read(fd, read_data, BUFFER_SIZE)) > 0)
 	{
-		free(read_data);
+		read_data[bytes_read] = '\0';
+		temp = ft_strjoin(line, read_data);
+		free(line);
+		line = temp;
+	}
+	free(read_data);
+	if (bytes_read < 0)
+	{
+		free(line);
 		return (NULL);
 	}
-	read_data[bytes_read] = '\0';
-	return (read_data);
+	return (line);
 }
 
-char	*extract_before_newline(const char *str)
+char	*get_single_line(char *buffer, int *i)
 {
-	char	*newline_pos;
-	size_t	length;
-	char	*result;
+	size_t	start;
+	char	*line;
 
-	newline_pos = strchr(str, '$');
-	if (newline_pos != NULL)
+	if (!buffer || buffer[*i] == '\0')
+		return (NULL);
+	start = *i;
+	while (buffer[*i] != '\n' && buffer[*i] != '\0')
+		(*i)++;
+	if (buffer[*i] == '\n')
 	{
-		length = newline_pos - str;
-		result = (char *)malloc(length + 1);
-		if (result != NULL)
-		{
-			ft_memcpy(result, str, length);
-			result[length] = '\0';
-		}
-		return (result);
+		line = ft_substr(buffer, start, *i - start + 1);
+		(*i)++;
 	}
-	return (NULL);
+	else
+	{
+		line = ft_substr(buffer, start, *i - start);
+	}
+	return (line);
 }
 
 char	*get_next_line(int fd)
 {
-	static char	*saved;
+	static char	*full_text;
+	static int	i;
 	char		*line;
-	char		*all_lines;
 
-	all_lines = malloc(1);
-	while (1)
+	if (!full_text)
+		full_text = NULL;
+	if (i == 0)
+		i = 0;
+	if (!full_text)
 	{
-		if (!saved)
-		{
-			saved = NULL;
-		}
-		else
-		{
-			all_lines = ft_strjoin(all_lines, saved);
-			// printf("I WANT HOME AND CODE TO WORK\n");
-			saved = NULL;
-		}
-		if (!all_lines)
-			return (NULL);
-		// all_lines[0] = '\0';
-		line = read_all_lines(fd);
-		if (!line)
-		{
-			free(all_lines);
-			return (NULL);
-		}
-		if (ft_strrchr(line, '$') != NULL)
-		{
-			saved = ft_strdup(ft_strrchr(line, '$'));
-			printf("EXTRACT BEFORE NEWLINE: %s\n",
-				extract_before_newline(line));
-			printf("SAVED: %s\n", saved);
-			all_lines = ft_strjoin(all_lines, extract_before_newline(line));
-			free(line);
-			return (all_lines);
-		}
-		all_lines = ft_strjoin(all_lines, line);
-		free(line);
-		if (!all_lines)
+		full_text = read_all_lines(fd);
+		if (!full_text)
 			return (NULL);
 	}
+	line = get_single_line(full_text, &i);
+	free(full_text);
+	return (line);
 }
 
-int	main(void)
-{
-	int		fd;
-	char	*line;
-	int		i;
+// int	main(void)
+// {
+// 	int fd;
+// 	char *line;
 
-	i = 0;
-	fd = open("example.txt", O_RDONLY);
-	if (fd < 0)
-	{
-		perror("Error opening file");
-		return (1);
-	}
-	while ((line = get_next_line(fd)) != NULL)
-	{
-		// printf("Print next Line: %s\n", line);
-		free(line);
-	}
-	// while (i < 9)
-	// {
-	// 	line = get_next_line(fd);
-	// 	printf("Print next Line: %s\n", line);
-	// 	i++;
-	// }
-	close(fd);
-	return (0);
-}
+// 	fd = open("example.txt", O_RDONLY);
+// 	if (fd < 0)
+// 	{
+// 		perror("Error opening file");
+// 		return (1);
+// 	}
+// 	while ((line = get_next_line(fd)) != NULL)
+// 	{
+// 		printf("Print next Line: %s", line);
+// 		free(line);
+// 	}
+// 	close(fd);
+// 	return (0);
+// }
 
-// First our goal is to read amount of buffers in the text and return them into line
-// we should keep doing this until we reach 'n' char.
-// reading buffer happens accordingly:
+// char	*get_next_line(int fd)
+// {
+// 	char		*full_text;
+// 	char		*line;
+// 	static int	i;
+
+// 	full_text = NULL;
+// 	if (i == 0)
+// 		i = 0;
+// 	if (!full_text)
+// 	{
+// 		full_text = read_all_lines(fd);
+// 		if (!full_text)
+// 			return (NULL);
+// 	}
+// 	line = get_single_line(full_text, &i);
+// 	return (line);
+// }

@@ -2,4 +2,5 @@ test.c
 *.txt
 *.out
 *.a
+*.vscode
 DS_STORE
