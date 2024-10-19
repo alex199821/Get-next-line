@@ -1,0 +1,5 @@
+test.c
+*.txt
+*.out
+*.a
+DS_STORE
