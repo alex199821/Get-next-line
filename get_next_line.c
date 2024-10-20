@@ -6,13 +6,13 @@
 /*   By: macbook <macbook@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/17 16:11:37 by auplisas          #+#    #+#             */
-/*   Updated: 2024/10/19 22:46:11 by macbook          ###   ########.fr       */
+/*   Updated: 2024/10/20 03:22:58 by macbook          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 // #include "get_next_line.h"
 
-// #define BUFFER_SIZE 10
+// #define BUFFER_SIZE 42
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -83,6 +83,26 @@ void	*ft_memmove(void *dst, const void *src, size_t n)
 		}
 	}
 	return (dst);
+}
+
+char	*ft_strchr(char *str, char c)
+{
+	int	i;
+
+	i = 0;
+	while (str[i] != '\0')
+	{
+		if (str[i] == c)
+		{
+			return ((char *)&str[i]);
+		}
+		i++;
+	}
+	if (c == '\0')
+	{
+		return ((char *)&str[i]);
+	}
+	return (NULL);
 }
 
 char	*ft_strdup(const char *src)
@@ -171,17 +191,67 @@ char	*read_all_lines(int fd)
 	{
 		read_data[bytes_read] = '\0';
 		temp = ft_strjoin(line, read_data);
+		if (!temp)
+		{
+			free(temp);
+			return (NULL);
+		}
 		free(line);
 		line = temp;
 	}
 	free(read_data);
-	if (bytes_read < 0)
-	{
-		free(line);
-		return (NULL);
-	}
 	return (line);
 }
+
+// char	*read_line(int fd)
+// {
+// 	char	*read_data;
+// 	char	*temp;
+// 	char	*line;
+// 	ssize_t	bytes_read;
+// 	char	*newline_pos;
+
+// 	read_data = malloc(BUFFER_SIZE + 1);
+// 	line = malloc(1);
+// 	if (!read_data || !line)
+// 		return (NULL);
+// 	line[0] = '\0';
+// 	while ((bytes_read = read(fd, read_data, BUFFER_SIZE)) > 0)
+// 	{
+// 		read_data[bytes_read] = '\0';
+// 		// Check if '\n' is found
+// 		newline_pos = ft_strchr(read_data, '\n');
+// 		if (newline_pos)
+// 		{
+// 			*newline_pos = '\0'; // Split at '\n'
+// 			temp = ft_strjoin(line, read_data);
+// 			if (!temp)
+// 			{
+// 				free(temp);
+// 				return (NULL);
+// 			}
+// 			free(line);
+// 			line = temp;
+// 			break ;
+// 		}
+// 		// No newline found, join full buffer
+// 		temp = ft_strjoin(line, read_data);
+// 		if (!temp)
+// 		{
+// 			free(temp);
+// 			return (NULL);
+// 		}
+// 		free(line);
+// 		line = temp;
+// 	}
+// 	free(read_data);
+// 	if (bytes_read <= 0 && line[0] == '\0')
+// 	{
+// 		free(line);
+// 		return (NULL); // Handle EOF or error
+// 	}
+// 	return (line);
+// }
 
 char	*get_single_line(char *buffer, int *i)
 {
@@ -200,7 +270,7 @@ char	*get_single_line(char *buffer, int *i)
 	}
 	else
 	{
-		line = ft_substr(buffer, start, *i - start);
+		line = ft_substr(buffer, start, *i - start + 1);
 	}
 	return (line);
 }
@@ -219,18 +289,34 @@ char	*get_next_line(int fd)
 	{
 		full_text = read_all_lines(fd);
 		if (!full_text)
+		{
+			// free(full_text);
 			return (NULL);
+		}
+	}
+	if (!full_text)
+	{
+		free(full_text);
+		return (NULL);
 	}
 	line = get_single_line(full_text, &i);
-	free(full_text);
+	if (line == NULL)
+	{
+		free(full_text);
+		full_text = NULL;
+		i = 0;
+	}
+	// full_text = NULL;
+	// free(full_test);
 	return (line);
 }
 
 // int	main(void)
 // {
-// 	int fd;
-// 	char *line;
+// 	int		fd;
+// 	char	*line;
 
+// 	// Open the file
 // 	fd = open("example.txt", O_RDONLY);
 // 	if (fd < 0)
 // 	{
@@ -240,27 +326,59 @@ char	*get_next_line(int fd)
 // 	while ((line = get_next_line(fd)) != NULL)
 // 	{
 // 		printf("Print next Line: %s", line);
-// 		free(line);
+// 		free(line); // Free each line after use
 // 	}
-// 	close(fd);
+// 	close(fd); // Don't forget to close the file descriptor
 // 	return (0);
 // }
 
-// char	*get_next_line(int fd)
+// int	main(void)
 // {
-// 	char		*full_text;
-// 	char		*line;
-// 	static int	i;
+// 	int fd;
+// 	char c;
+// 	char *line;
 
-// 	full_text = NULL;
-// 	if (i == 0)
-// 		i = 0;
-// 	if (!full_text)
+// 	// Open the file
+// 	fd = open("example.txt", O_RDWR);
+// 	if (fd == -1)
 // 	{
-// 		full_text = read_all_lines(fd);
-// 		if (!full_text)
-// 			return (NULL);
+// 		perror("Error opening file");
+// 		exit(EXIT_FAILURE);
 // 	}
-// 	line = get_single_line(full_text, &i);
-// 	return (line);
+
+// 	// Test 1: Read the first line using get_next_line
+// 	line = get_next_line(fd);
+// 	if (line)
+// 	{
+// 		printf("Line read: %s", line); // It should print the first line
+// 		free(line);
+// 	}
+// 	else
+// 	{
+// 		printf("Error: Failed to read the first line.\n");
+// 		close(fd);
+// 		return (1);
+// 	}
+
+// 	// Test 2: Read one character after the newline
+// 	if (read(fd, &c, 1) == 1)
+// 	{
+// 		// Check if the character is '1'
+// 		if (c == '1')
+// 		{
+// 			printf("Test passed: next character is '1'.\n");
+// 		}
+// 		else
+// 		{
+// 			printf("Test failed: expected '1', but got '%c'.\n", c);
+// 		}
+// 	}
+// 	else
+// 	{
+// 		printf("Error: Failed to read the character after the newline.\n");
+// 	}
+
+// 	// Close the file
+// 	close(fd);
+// 	return (0);
 // }

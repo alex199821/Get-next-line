@@ -6,7 +6,7 @@
 /*   By: macbook <macbook@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/18 16:56:08 by macbook           #+#    #+#             */
-/*   Updated: 2024/10/19 08:31:52 by macbook          ###   ########.fr       */
+/*   Updated: 2024/10/20 01:12:19 by macbook          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,11 +17,11 @@
 # include <unistd.h>
 
 # ifndef BUFFER_SIZE
-#  define BUFFER_SIZE 1
+#  define BUFFER_SIZE 10
 # endif
 
-// void	*ft_calloc(size_t count, size_t size);
-// char	*ft_substr(char const *s, unsigned int start, size_t len);
+char	*ft_strjoin(char const *prefix, char const *suffix);
+char	*ft_substr(char const *s, unsigned int start, size_t len);
 char	*get_next_line(int fd);
 
 #endif

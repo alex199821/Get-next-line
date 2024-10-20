@@ -6,11 +6,11 @@
 /*   By: macbook <macbook@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/18 16:58:57 by macbook           #+#    #+#             */
-/*   Updated: 2024/10/19 08:31:59 by macbook          ###   ########.fr       */
+/*   Updated: 2024/10/20 01:28:02 by macbook          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "get_next_line.h"
+// #include "get_next_line.h"
 
 // size_t	ft_strlen(const char *c)
 // {
@@ -95,8 +95,8 @@
 
 // char	*ft_substr(char const *s, unsigned int start, size_t len)
 // {
-// 	size_t i;
-// 	char *array;
+// 	size_t	i;
+// 	char	*array;
 
 // 	i = 0;
 // 	if (start >= ft_strlen(s))
@@ -115,6 +115,33 @@
 // 	while (i < len && s[start + i] != '\0')
 // 	{
 // 		array[i] = s[i + start];
+// 		i++;
+// 	}
+// 	array[i] = '\0';
+// 	return (array);
+// }
+
+// char	*ft_strjoin(char const *prefix, char const *suffix)
+// {
+// 	char	*array;
+// 	size_t	prefixlength;
+// 	size_t	suffixlength;
+// 	size_t	i;
+
+// 	prefixlength = ft_strlen(prefix);
+// 	suffixlength = ft_strlen(suffix);
+// 	i = 0;
+// 	array = (char *)malloc(prefixlength + suffixlength + 1);
+// 	if (array == NULL)
+// 		return (NULL);
+// 	while (i < (prefixlength))
+// 	{
+// 		array[i] = prefix[i];
+// 		i++;
+// 	}
+// 	while (i < (prefixlength + suffixlength))
+// 	{
+// 		array[i] = suffix[i - prefixlength];
 // 		i++;
 // 	}
 // 	array[i] = '\0';
