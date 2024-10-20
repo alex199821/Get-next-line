@@ -6,7 +6,7 @@
 /*   By: macbook <macbook@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/17 16:11:37 by auplisas          #+#    #+#             */
-/*   Updated: 2024/10/20 05:46:28 by macbook          ###   ########.fr       */
+/*   Updated: 2024/10/20 18:48:05 by macbook          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -175,73 +175,132 @@ char	*ft_strjoin(char const *prefix, char const *suffix)
 	return (array);
 }
 
+// char	*read_single_buffer(int fd, char *line_read, ssize_t total_bytes)
+// {
+// 	ssize_t	bytes_read;
+// 	char	*buffer;
+
+// 	buffer = (char *)ft_calloc(BUFFER_SIZE + 1, sizeof(char));
+// 	if (buffer == NULL)
+// 	{
+// 		free(buffer);
+// 		return (NULL);
+// 	}
+// 	bytes_read = read(fd, buffer, BUFFER_SIZE);
+// 	if (bytes_read <= 0)
+// 	{
+// 		free(buffer);
+// 		return (NULL);
+// 	}
+// 	total_bytes = total_bytes + bytes_read;
+// 	return (buffer);
+// }
+
 // char	*get_next_line(int fd)
 // {
+// 	char	*single_buffer;
+// 	ssize_t	total_bytes;
 // 	char	*line_read;
-// 	int		i;
-// 	size_t	bytes_read;
-// 	char	*line;
+// 	char	*temp;
 
-// 	line_read = malloc(BUFFER_SIZE + 1); // +1 for the null terminator
-// 	if (!line_read)
+// 	line_read = (char *)ft_calloc(1, sizeof(char));
+// 	if (line_read == NULL)
 // 	{
-// 		return (NULL); // Return NULL if memory allocation fails
+// 		free(line_read);
+// 		return (NULL);
 // 	}
-// 	bytes_read = read(fd, line_read, BUFFER_SIZE);
-// 	line_read[bytes_read] = '\0';
-// 	printf("Line Read: %s\n", line_read);
-// 	printf("BYTES READ: %zu\n", bytes_read);
-// 	return (line_read);
+// 	single_buffer = read_single_buffer(fd, single_buffer, total_bytes);
+// 	temp = ft_strjoin(line_read, single_buffer);
+// 	if (ft_strchr(single_buffer, '$') != NULL)
+// 	{
+// 		printf("ft_strchr worked\n");
+// 		return (NULL);
+// 	}
+// 	return (single_buffer);
 // }
 
-// void	create_single_line(char *single_line, char *buffer)
+// int	main(void)
 // {
-// }
+// 	int fd;
+// 	char *line;
+// 	int i;
+// 	fd = open("example.txt", O_RDONLY);
+// 	i = 0;
+// 	if (fd < 0)
+// 	{
+// 		perror("Error opening file");
+// 		return (1);
+// 	}
 
-void	read_single_buffer(int fd, char *line_read)
+// 	while ((line = get_next_line(fd)) != NULL && i < 20)
+// 	{
+// 		printf("Read Line: %s\n", line);
+// 		i++;
+// 		free(line);
+// 	}
+
+// 	close(fd);
+// 	return (0);
+// };
+
+char	*read_single_buffer(int fd)
 {
 	ssize_t	bytes_read;
 	char	*buffer;
-	char	*temp;
 
-	while (strchr(line_read, '\n') == NULL)
+	buffer = (char *)ft_calloc(BUFFER_SIZE + 1, sizeof(char));
+	if (buffer == NULL)
+		return (NULL);
+	bytes_read = read(fd, buffer, BUFFER_SIZE);
+	if (bytes_read <= 0)
 	{
-		buffer = (char *)ft_calloc(BUFFER_SIZE + 1, sizeof(char));
-		if (buffer == NULL)
+		free(buffer);
+		return (NULL);
+	}
+	return (buffer);
+}
+
+char	*return_single_line(int fd)
+{
+	char		*single_buffer;
+	char		*line_read;
+	static char	*newline_position;
+	size_t		len_before_newline;
+
+	line_read = ft_strdup("");
+	while (1)
+	{
+		if (newline_position != NULL)
 		{
-			free(buffer);
-			return ;
+			line_read = ft_strjoin(line_read, newline_position);
+			newline_position = NULL;
 		}
-		bytes_read = read(fd, buffer, BUFFER_SIZE);
-		if (!bytes_read)
+		single_buffer = read_single_buffer(fd);
+		if (single_buffer == NULL)
 		{
-			free(buffer);
-			return ;
+			printf("ended whole\n");
+			return (NULL);
 		}
-		// temp = ft_strjoin(line_read, buffer);
-		// line_read = temp;
-		ft_memmove(line_read, ft_strjoin(line_read, buffer), 100);
-		// free(buffer);
-		// free(temp);
-		// line_read = buffer;
-		// free(buffer);
+		line_read = ft_strjoin(line_read, single_buffer);
+		if (ft_strchr(line_read, '\n') != NULL)
+		{
+			newline_position = ft_strchr(line_read, '\n');
+			if (newline_position == NULL)
+			{
+				return (ft_substr(line_read, 0, ft_strlen(line_read)));
+			}
+			return (ft_substr(line_read, 0, newline_position - line_read));
+		}
 	}
 }
 
 char	*get_next_line(int fd)
 {
+	char	*single_buffer;
+	ssize_t	total_bytes;
 	char	*line_read;
-	int		i;
 
-	line_read = (char *)ft_calloc(3000, sizeof(char));
-	if (line_read == NULL)
-	{
-		free(line_read);
-		return (NULL);
-	}
-	line_read[0] = '\0';
-	read_single_buffer(fd, line_read);
-	printf("LINE: %s\n", line_read);
+	line_read = return_single_line(fd);
 	return (line_read);
 }
 
@@ -258,13 +317,13 @@ int	main(void)
 		return (1);
 	}
 
-	while ((line = get_next_line(fd)) != NULL && i < 2)
+	while ((line = get_next_line(fd)) != NULL)
 	{
 		// printf("Read Line: %s\n", line);
 		i++;
-		// free(line);
+		free(line);
 	}
 
 	close(fd);
 	return (0);
-};
+}
