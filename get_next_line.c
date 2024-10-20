@@ -6,13 +6,13 @@
 /*   By: macbook <macbook@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/17 16:11:37 by auplisas          #+#    #+#             */
-/*   Updated: 2024/10/20 18:48:05 by macbook          ###   ########.fr       */
+/*   Updated: 2024/10/20 21:54:23 by macbook          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 // #include "get_next_line.h"
 
-#define BUFFER_SIZE 10
+#define BUFFER_SIZE 10000
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -113,9 +113,7 @@ char	*ft_strdup(const char *src)
 	i = ft_strlen(src);
 	array = (char *)ft_calloc(i + 1, sizeof(char));
 	if (array == NULL)
-	{
 		return (NULL);
-	}
 	ft_memmove(array, src, i + 1);
 	return (array);
 }
@@ -211,9 +209,9 @@ char	*ft_strjoin(char const *prefix, char const *suffix)
 // 	}
 // 	single_buffer = read_single_buffer(fd, single_buffer, total_bytes);
 // 	temp = ft_strjoin(line_read, single_buffer);
-// 	if (ft_strchr(single_buffer, '$') != NULL)
+// 	if (ft_strchr(single_buffer, '\n') != NULL)
 // 	{
-// 		printf("ft_strchr worked\n");
+// 		printf("ft_strchr worked$");
 // 		return (NULL);
 // 	}
 // 	return (single_buffer);
@@ -234,7 +232,7 @@ char	*ft_strjoin(char const *prefix, char const *suffix)
 
 // 	while ((line = get_next_line(fd)) != NULL && i < 20)
 // 	{
-// 		printf("Read Line: %s\n", line);
+// 		printf("Read Line: %s$", line);
 // 		i++;
 // 		free(line);
 // 	}
@@ -242,6 +240,32 @@ char	*ft_strjoin(char const *prefix, char const *suffix)
 // 	close(fd);
 // 	return (0);
 // };
+
+char	*ft_strbefore(const char *str, char n)
+{
+	size_t	i;
+	size_t	j;
+	char	*result;
+
+	j = 0;
+	i = 0;
+	while (str[i] != '\0' && str[i] != n)
+	{
+		i++;
+	}
+	result = (char *)malloc(i + 1);
+	if (result == NULL)
+	{
+		return (NULL);
+	}
+	while (j < i)
+	{
+		result[j] = str[j];
+		j++;
+	}
+	result[i] = '\0';
+	return (result);
+}
 
 char	*read_single_buffer(int fd)
 {
@@ -260,47 +284,81 @@ char	*read_single_buffer(int fd)
 	return (buffer);
 }
 
+char	*extract_before_newline(const char *line_read)
+{
+	char	*newline_position;
+	int		length;
+	char	*result;
+
+	newline_position = strchr(line_read, '\n');
+	if (newline_position != NULL)
+	{
+		length = newline_position - line_read;
+		result = malloc(length + 1);
+		if (result != NULL)
+		{
+			ft_memmove(result, line_read, length);
+			result[length] = '\0';
+			return (result);
+		}
+		else
+		{
+			return (NULL);
+		}
+	}
+	else
+	{
+		return (NULL);
+	}
+}
+
 char	*return_single_line(int fd)
 {
-	char		*single_buffer;
-	char		*line_read;
-	static char	*newline_position;
-	size_t		len_before_newline;
+	char	*single_buffer;
+	char	*line_read;
 
 	line_read = ft_strdup("");
 	while (1)
 	{
-		if (newline_position != NULL)
-		{
-			line_read = ft_strjoin(line_read, newline_position);
-			newline_position = NULL;
-		}
 		single_buffer = read_single_buffer(fd);
 		if (single_buffer == NULL)
-		{
-			printf("ended whole\n");
 			return (NULL);
-		}
 		line_read = ft_strjoin(line_read, single_buffer);
 		if (ft_strchr(line_read, '\n') != NULL)
-		{
-			newline_position = ft_strchr(line_read, '\n');
-			if (newline_position == NULL)
-			{
-				return (ft_substr(line_read, 0, ft_strlen(line_read)));
-			}
-			return (ft_substr(line_read, 0, newline_position - line_read));
-		}
+			return (line_read);
 	}
 }
 
 char	*get_next_line(int fd)
 {
-	char	*single_buffer;
-	ssize_t	total_bytes;
-	char	*line_read;
+	char		*line_read;
+	char		*temp;
+	int			saved_len;
+	static char	*saved_chars;
 
 	line_read = return_single_line(fd);
+	if (line_read == NULL && saved_chars)
+	{
+		temp = (char *)ft_calloc(ft_strlen(saved_chars) + 1, sizeof(char));
+		if (temp == NULL)
+			return (NULL);
+		ft_memmove(temp, saved_chars, ft_strlen(saved_chars) + 1);
+		saved_chars = NULL;
+		return (temp);
+	}
+	if (line_read && saved_chars && ft_strchr(saved_chars, '\n') == NULL)
+	{
+		line_read = ft_strjoin(saved_chars, line_read);
+	}
+	if (line_read && ft_strchr(line_read, '\n') != NULL)
+	{
+		saved_len = ft_strlen(ft_strchr(line_read, '\n'));
+		saved_chars = (char *)ft_calloc(saved_len + 1, sizeof(char));
+		if (saved_chars == NULL)
+			return (NULL);
+		ft_memmove(saved_chars, ft_strchr(line_read, '\n') + 1, saved_len + 1);
+		return (extract_before_newline(line_read));
+	}
 	return (line_read);
 }
 
@@ -319,7 +377,7 @@ int	main(void)
 
 	while ((line = get_next_line(fd)) != NULL)
 	{
-		// printf("Read Line: %s\n", line);
+		printf("Read Line: %s\n", line);
 		i++;
 		free(line);
 	}
