@@ -6,13 +6,13 @@
 /*   By: macbook <macbook@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/10/17 16:11:37 by auplisas          #+#    #+#             */
-/*   Updated: 2024/10/21 02:16:08 by macbook          ###   ########.fr       */
+/*   Updated: 2024/10/21 05:01:38 by macbook          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 // #include "get_next_line.h"
 
-// #define BUFFER_SIZE 1
+// #define BUFFER_SIZE 10
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -173,38 +173,12 @@ char	*ft_strjoin(char const *prefix, char const *suffix)
 	return (array);
 }
 
-char	*ft_strbefore(const char *str, char n)
-{
-	size_t	i;
-	size_t	j;
-	char	*result;
-
-	j = 0;
-	i = 0;
-	while (str[i] != '\0' && str[i] != n)
-	{
-		i++;
-	}
-	result = (char *)malloc(i + 1);
-	if (result == NULL)
-	{
-		return (NULL);
-	}
-	while (j < i)
-	{
-		result[j] = str[j];
-		j++;
-	}
-	result[i] = '\0';
-	return (result);
-}
-
 char	*read_single_buffer(int fd)
 {
 	ssize_t	bytes_read;
 	char	*buffer;
 
-	buffer = (char *)ft_calloc(BUFFER_SIZE, sizeof(char));
+	buffer = (char *)ft_calloc(BUFFER_SIZE + 1, sizeof(char));
 	if (buffer == NULL)
 		return (NULL);
 	bytes_read = read(fd, buffer, BUFFER_SIZE);
@@ -213,6 +187,7 @@ char	*read_single_buffer(int fd)
 		free(buffer);
 		return (NULL);
 	}
+	buffer[bytes_read] = '\0';
 	return (buffer);
 }
 
@@ -227,36 +202,36 @@ char	*polish_new_line(char *buffer)
 	while (buffer[i] != '\n' && buffer[i] != '\0')
 		i++;
 	line = ft_substr(buffer, 0, i + 1);
+	if (line == NULL)
+		return (NULL);
 	return (line);
 }
 
 char	*create_saved_chars(char *line_read)
 {
 	char	*saved_chars;
-	int		saved_len;
 	char	*newline_pos;
 
-	if (line_read && (newline_pos = ft_strchr(line_read, '\n')) != NULL)
+	newline_pos = ft_strchr(line_read, '\n');
+	if (newline_pos)
 	{
-		newline_pos++;
-		saved_len = ft_strlen(newline_pos);
-		saved_chars = (char *)ft_calloc(saved_len + 1, sizeof(char));
-		if (saved_chars == NULL)
+		saved_chars = ft_strdup(newline_pos + 1);
+		if (!saved_chars)
 			return (NULL);
-		ft_memmove(saved_chars, newline_pos, saved_len);
 		return (saved_chars);
 	}
-	else
-	{
-		return (NULL);
-	}
+	return (NULL);
 }
-
 
 char	*return_single_line(int fd)
 {
 	char	*single_buffer;
-	char	*line_read = ft_strdup("");
+	char	*line_read;
+	char	*temp;
+
+	line_read = ft_strdup("");
+	if (!line_read)
+		return (NULL);
 	while (1)
 	{
 		single_buffer = read_single_buffer(fd);
@@ -267,14 +242,16 @@ char	*return_single_line(int fd)
 			free(line_read);
 			return (NULL);
 		}
-		line_read = ft_strjoin(line_read, single_buffer);
-		if (ft_strchr(line_read, '\n') != NULL || ft_strlen(single_buffer) < BUFFER_SIZE)
-		{
-			free(single_buffer);
-			return (line_read);
-		}
+		temp = ft_strjoin(line_read, single_buffer);
+		free(line_read);
 		free(single_buffer);
+		if (!temp)
+			return (NULL);
+		line_read = temp;
+		if (ft_strchr(line_read, '\n') != NULL)
+			return (line_read);
 	}
+	return (line_read);
 }
 
 char	*get_next_line(int fd)
@@ -282,96 +259,64 @@ char	*get_next_line(int fd)
 	static char	*saved_chars;
 	char		*line_read;
 	char		*polished_new_line;
+	char		*new_saved_chars;
+	char		*temp_polished_line;
 
+	if (!saved_chars)
+		saved_chars = NULL;
 	if (saved_chars != NULL)
 	{
+		temp_polished_line = saved_chars;
 		if (ft_strchr(saved_chars, '\n') != NULL)
 		{
 			polished_new_line = polish_new_line(saved_chars);
-			saved_chars = create_saved_chars(saved_chars);
+			if (!polished_new_line)
+				return (NULL);
+			new_saved_chars = create_saved_chars(saved_chars);
+			free(saved_chars);
+			saved_chars = new_saved_chars;
 			return (polished_new_line);
 		}
 	}
-
 	line_read = return_single_line(fd);
 	if (line_read == NULL)
 	{
 		if (saved_chars != NULL)
 		{
 			polished_new_line = polish_new_line(saved_chars);
+			free(saved_chars);
 			saved_chars = NULL;
 			return (polished_new_line);
 		}
 		return (NULL);
 	}
-
-	saved_chars = create_saved_chars(line_read);
+	if (saved_chars)
+	{
+		temp_polished_line = (char *)ft_calloc(ft_strlen(saved_chars) + 1,
+				sizeof(char));
+		if (temp_polished_line == NULL)
+			return (NULL);
+		ft_memmove(temp_polished_line, saved_chars, ft_strlen(saved_chars));
+	}
+	new_saved_chars = create_saved_chars(line_read);
+	free(saved_chars);
+	saved_chars = new_saved_chars;
 	polished_new_line = polish_new_line(line_read);
-	return (polished_new_line);
+	free(line_read);
+	if (temp_polished_line != NULL)
+	{
+		return (ft_strjoin(temp_polished_line, polished_new_line));
+	}
+	else
+	{
+		return (polished_new_line);
+	}
 }
-
-// char	*return_single_line(int fd)
-// {
-// 	char	*single_buffer;
-// 	char	*line_read;
-
-// 	line_read = ft_strdup("");
-// 	while (1)
-// 	{
-// 		single_buffer = read_single_buffer(fd);
-// 		if (single_buffer == NULL)
-// 		{
-// 			free(line_read);
-// 			return (NULL);
-// 		}
-// 		line_read = ft_strjoin(line_read, single_buffer);
-// 		if (ft_strchr(line_read, '\n') != NULL
-// 			|| ft_strlen(single_buffer) != BUFFER_SIZE)
-// 		{
-// 			free(single_buffer);
-// 			return (line_read);
-// 		}
-// 		free(single_buffer);
-// 	}
-// }
-
-// char	*get_next_line(int fd)
-// {
-// 	static char	*saved_chars;
-// 	char		*line_read;
-// 	char		*temp;
-// 	char		*polished_new_line;
-
-// 	if (saved_chars != NULL)
-// 	{
-// 		temp = saved_chars;
-// 		if (ft_strchr(temp, '\n') != NULL)
-// 		{
-// 			line_read = temp;
-// 			saved_chars = create_saved_chars(line_read);
-// 			polished_new_line = polish_new_line(line_read);
-// 			return (polished_new_line);
-// 		}
-// 	}
-// 	line_read = return_single_line(fd);
-// 	if (line_read == NULL && saved_chars != NULL)
-// 	{
-// 		saved_chars = NULL;
-// 		return (temp);
-// 	}
-// 	saved_chars = create_saved_chars(line_read);
-// 	polished_new_line = polish_new_line(line_read);
-// 	if (saved_chars != NULL)
-// 	{
-// 		return (ft_strjoin(temp, polished_new_line));
-// 	}
-// 	return (polished_new_line);
-// }
 
 // int	main(void)
 // {
-// 	int fd;
-// 	char *line;
+// 	int		fd;
+// 	char	*line;
 
 // 	fd = open("example.txt", O_RDONLY);
 // 	if (fd < 0)
