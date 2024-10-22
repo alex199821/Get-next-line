@@ -5,29 +5,78 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: macbook <macbook@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/10/22 01:39:26 by macbook           #+#    #+#             */
-/*   Updated: 2024/10/22 01:52:55 by macbook          ###   ########.fr       */
+/*   Created: 2024/10/22 05:18:01 by macbook           #+#    #+#             */
+/*   Updated: 2024/10/22 05:18:23 by macbook          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line_bonus.h"
 
-char	*strjoin_shortened(char *buffer, char *tmp)
+char	*ft_strjoin(char const *prefix, char const *suffix)
 {
-	char	*str;
+	char	*array;
+	size_t	prefixlength;
+	size_t	suffixlength;
+	size_t	i;
 
-	str = ft_strjoin(buffer, tmp);
-	free(buffer);
-	return (str);
+	prefixlength = ft_strlen(prefix);
+	suffixlength = ft_strlen(suffix);
+	i = 0;
+	array = (char *)malloc(prefixlength + suffixlength + 1);
+	if (array == NULL)
+		return (NULL);
+	while (i < (prefixlength))
+	{
+		array[i] = prefix[i];
+		i++;
+	}
+	while (i < (prefixlength + suffixlength))
+	{
+		array[i] = suffix[i - prefixlength];
+		i++;
+	}
+	array[i] = '\0';
+	return (array);
 }
 
-char	*read_buffer(int fd, char *buffer)
+char	*polish_new_line(char *buffer)
+{
+	int		i;
+	char	*line;
+
+	i = 0;
+	if (!buffer || buffer[i] == '\0')
+		return (NULL);
+	while (buffer[i] != '\n' && buffer[i] != '\0')
+		i++;
+	line = ft_substr(buffer, 0, i + 1);
+	if (line == NULL)
+		return (NULL);
+	return (line);
+}
+
+char	*create_saved_chars(char *line_read)
+{
+	char	*saved_chars;
+	char	*newline_pos;
+
+	newline_pos = ft_strchr(line_read, '\n');
+	if (newline_pos == NULL)
+		return (free(line_read), NULL);
+	saved_chars = ft_strdup(newline_pos + 1);
+	if (!saved_chars)
+		return (free(line_read), NULL);
+	return (free(line_read), saved_chars);
+}
+
+char	*return_single_line(int fd, char *buffer)
 {
 	int		bytes_read;
 	char	read_data[BUFFER_SIZE + 1];
+	char	*temp;
 
 	if (!buffer)
-		buffer = ft_calloc(1, sizeof(char));
+		buffer = ft_strdup("");
 	if (!buffer)
 		return (NULL);
 	bytes_read = 1;
@@ -37,67 +86,15 @@ char	*read_buffer(int fd, char *buffer)
 		if (bytes_read < 0)
 			return (free(buffer), NULL);
 		read_data[bytes_read] = '\0';
-		buffer = strjoin_shortened(buffer, read_data);
-		if (!buffer)
+		temp = ft_strjoin(buffer, read_data);
+		free(buffer);
+		if (!temp)
 			return (NULL);
+		buffer = temp;
 		if (ft_strchr(buffer, '\n'))
 			break ;
 	}
 	return (buffer);
-}
-
-char	*get_single_line(char *buffer)
-{
-	int		count;
-	int		i;
-	char	*str;
-
-	count = 0;
-	if (!buffer[0])
-		return (NULL);
-	while (buffer[count] && buffer[count] != '\n')
-		count++;
-	if (buffer[count] == '\n')
-		count++;
-	str = ft_calloc(count + 1, sizeof(char));
-	if (!str)
-		return (NULL);
-	i = 0;
-	while (i < count)
-	{
-		str[i] = buffer[i];
-		i++;
-	}
-	str[i] = '\0';
-	return (str);
-}
-
-char	*save_extra_chars(char *buffer)
-{
-	char	*str;
-	int		count_str;
-	int		i;
-	char	*tmp;
-
-	tmp = buffer;
-	count_str = 0;
-	i = 0;
-	while (tmp[i] && tmp[i] != '\n')
-		i++;
-	if (!tmp[i])
-		return (free(buffer), NULL);
-	str = ft_calloc(ft_strlen(tmp) + 1, sizeof(char));
-	if (!str)
-		return (free(buffer), NULL);
-	i++;
-	while (tmp[i])
-	{
-		str[count_str++] = tmp[i];
-		i++;
-	}
-	str[count_str] = '\0';
-	free(buffer);
-	return (str);
 }
 
 char	*get_next_line(int fd)
@@ -109,16 +106,38 @@ char	*get_next_line(int fd)
 		return (NULL);
 	if (!full_text)
 		full_text = NULL;
-	full_text = read_buffer(fd, full_text);
+	full_text = return_single_line(fd, full_text);
 	if (!full_text)
 		return (NULL);
-	line = get_single_line(full_text);
+	line = polish_new_line(full_text);
 	if (!line)
 	{
 		free(full_text);
 		full_text = NULL;
 		return (NULL);
 	}
-	full_text = save_extra_chars(full_text);
+	full_text = create_saved_chars(full_text);
 	return (line);
 }
+
+// int	main(void)
+// {
+// 	int		fd;
+// 	char	*line;
+// 	int		i;
+
+// 	i = 0;
+// 	fd = open("example.txt", O_RDONLY);
+// 	if (fd < 0)
+// 	{
+// 		perror("Error opening file");
+// 		return (1);
+// 	}
+// 	while ((line = get_next_line(fd)) != NULL && i < 20)
+// 	{
+// 		i++;
+// 		printf("Read Line: %s", line);
+// 	}
+// 	close(fd);
+// 	return (0);
+// }
